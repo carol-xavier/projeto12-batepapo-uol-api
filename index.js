@@ -1,11 +1,12 @@
 import express, { json } from 'express';
 import { MongoClient } from 'mongodb';
+import Joi from 'joi';
 import cors from 'cors';
 import dotenv from "dotenv";
 import dayjs from 'dayjs'
 dotenv.config();
 
-//USER pode ser uma variável global???
+//USER pode ser uma variável global??
 
 const app = express();
 app.use(json());
@@ -19,15 +20,37 @@ promise.then(() => {
     console.log("Seu DB está funcionando! YAY")
 });
 
-app.post("/participants", (req, res) => {
+app.post("/participants", async (req, res) => {
     const { name } = req.body;
     const time = dayjs().format('hh:mm:ss');
+    let stop;
 
-    if (name === "") {
+    const scheme = Joi.object().keys({
+        name: Joi.string().min(1).required()
+    });
+    const result = scheme.validate({name});
+    const { error } = result; 
+    const valid = error == null;
+
+    if (!valid) {
         res.status(422).send('Nome é obrigatório');
         return;
     }
 
+    const arrUsers = await db.collection("uolUsers").find({}).toArray();
+    arrUsers.map(user => {
+        if(user.name === name){
+            stop = "stop";
+            res.status(409).send("Nome em uso. Escolha outro nome");
+            return;
+        }
+    });
+
+    if(stop) return;
+    addUser(name,time, res);
+});
+
+function addUser(name,time, res){
     const user = {
         name,
         lastStatus: Date.now()
@@ -40,12 +63,12 @@ app.post("/participants", (req, res) => {
         time
     }
     const promise = db.collection("uolUsers").insertOne(user);
-    promise.then(() => {
-        const promiseTwo = db.collection("uolMessages").insertOne(status);
-        promiseTwo.then(() => res.sendStatus(201));
+    promise.then(async () => {
+        await db.collection("uolMessages").insertOne(status);
+        res.sendStatus(201);
     });
     promise.catch(() => res.sendStatus(500));
-});
+};
 
 app.get('/participants', (req, res) => {
     db.collection("uolUsers").find({}).toArray().then(users => res.send(users));
