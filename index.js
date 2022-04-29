@@ -19,33 +19,6 @@ promise.then(() => {
     console.log("Seu DB está funcionando! YAY")
 });
 
-// setInterval(() => {
-//     const now = Date.now();
-//     const time = dayjs().format("hh:mm:ss");
-
-//     const promise = db.collection("uolUsers").find().toArray();
-//     promise.then(users => {
-//         const usersCollection = db.collection("uolUsers");
-//         users.map((user,index) => {
-//             if(now - user.lastStatus > 10000){
-//                 usersCollection.deleteOne({ _id: new ObjectId(index)}).then(() => {
-//                     console.log(usersCollection,"DEVE ESTAR DELETANDO");
-//                     const statusOff = {
-//                         from: user.name, 
-//                         to: 'Todos', 
-//                         text: 'sai da sala...', 
-//                         type: 'status', 
-//                         time
-//                     };
-//                     db.collection("uolMessages").insertOne(statusOff).then(() => console.log(statusOff,"DEVE TER ENVIADO A MSG"));
-//                 })
-//             }
-//         })
-//     });
-//     promise.catch(console.log("DEU RUIM"));
-// }, 15000);
-
-
 app.post("/participants", (req, res) => {
     const { name } = req.body;
     const time = dayjs().format('hh:mm:ss');
@@ -101,7 +74,7 @@ app.get('/messages', (req, res) => {
 
     const promise = db.collection("uolMessages").find({}).toArray();
     promise.then((messages) => {
-        const filteredMsgs = messages.filter(msg => msg.to === user || msg.to === "todos" || msg.from === user);
+        const filteredMsgs = messages.filter(msg => msg.to === user || msg.to === "Todos" || msg.from === user);
 
         if (!limit) res.send(filteredMsgs);
 
@@ -143,8 +116,8 @@ setInterval(() => {
             };
         });
     });
-    promise.catch(console.log("DEU RUIM"));
-}, 50000);
+    // promise.catch(console.log("DEU RUIM"));
+}, 15000);
 
 async function deleteUser(user) {
     try {
@@ -159,9 +132,8 @@ async function deleteUser(user) {
             time: dayjs().format("hh:mm:ss")
         }
         await msgCollection.insterOne(statusOff);
-        console.log("ENVIOU STATUSOFF")
     } catch (error) {
-        console.log("ERRO");
+        console.log("ERRO"); //DEIXO ESSE CONSOLE.LOG??
     }
 };
 
