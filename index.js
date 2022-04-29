@@ -6,8 +6,6 @@ import dotenv from "dotenv";
 import dayjs from 'dayjs'
 dotenv.config();
 
-//USER pode ser uma variável global??
-
 const app = express();
 app.use(json());
 app.use(cors());
@@ -74,18 +72,41 @@ app.get('/participants', (req, res) => {
     db.collection("uolUsers").find({}).toArray().then(users => res.send(users));
 });
 
-app.post('/messages', (req, res) => {
+app.post('/messages', async (req, res) => {
     const { to, text, type } = req.body;
     const { user } = req.headers;
     const time = dayjs().format('hh:mm:ss');
+    let participant;
+
+    const arrUsers = await db.collection("uolUsers").find({}).toArray();
+    arrUsers.map(obj => {
+        if(obj.name === user) participant = user;
+    });
 
     const message = {
-        from: user,
+        from: participant,
         to,
         text,
         type,
         time
     }
+
+    const scheme = Joi.object().keys({
+        to: Joi.string().min(1).required(),
+        text: Joi.string().min(1).required(),
+        type: Joi.alternatives().try("message", "private_message"),
+        from: Joi.string().required(),
+        time: Joi.required()
+    });
+    const result = scheme.validate(message);
+    const { error } = result; 
+    const valid = error == null;
+
+    if (!valid) {
+        res.status(422).send('Erro ao carregar a mensagem');
+        return;
+    }
+
     const promise = db.collection("uolMessages").insertOne(message);
     promise.then(() => res.sendStatus(201));
     promise.catch(() => res.sendStatus(500));
